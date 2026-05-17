@@ -1,0 +1,36 @@
+{
+    "keys": [
+        "main",
+        "skills",
+        "status",
+        "map",
+        "guide",
+        "continue",
+        "restart_mission",
+        "abandon_mission",
+        "settings",
+        "save_game",
+        "exit_to_main_menu",
+        "options",
+        "graphic",
+        "controller",
+        "low"
+    ],
+    "values": [
+        "Главная",
+        "Навыки",
+        "Статус",
+        "Карта",
+        "Руководство",
+        "Продолжить",
+        "Перезапуск миссии",
+        "Бросить миссию",
+        "Настройки",
+        "Сохранить игру",
+        "Выход в главное меню",
+        "Опции",
+        "Графика",
+        "Контроллер",
+        ""
+    ]
+}

@@ -1,0 +1,36 @@
+{
+    "keys": [
+        "main",
+        "skills",
+        "status",
+        "map",
+        "guide",
+        "continue",
+        "restart_mission",
+        "abandon_mission",
+        "settings",
+        "save_game",
+        "exit_to_main_menu",
+        "options",
+        "graphic",
+        "controller",
+        "low"
+    ],
+    "values": [
+        "Asosiy",
+        "Ko'nikmalar",
+        "Holat",
+        "Xarita",
+        "Qo'llanma",
+        "Davom etish",
+        "Missiyani qayta boshlash",
+        "Missiyani bekor qilish",
+        "Sozlamalar",
+        "O‘yinni saqlash",
+        "Asosiy menyuga chiqish",
+        "Opsiyalar",
+        "Grafika",
+        "Kontroller",
+        "Past"
+    ]
+}

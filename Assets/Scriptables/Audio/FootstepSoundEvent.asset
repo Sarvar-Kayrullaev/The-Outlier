@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b1437eb3ddaa4d489cdc31f41b85dae, type: 3}
+  m_Name: FootstepSoundEvent
+  m_EditorClassIdentifier: Assembly-CSharp::Audio.Events.RandomAudioEvent
+  clips:
+  - {fileID: 8300000, guid: b1088d388b21c1548a412a980c202e65, type: 3}
+  - {fileID: 8300000, guid: bd51fd2d5e852dd49b2f2d909b2c770a, type: 3}
+  - {fileID: 8300000, guid: 78e1753576553cb4a92509f469063b01, type: 3}
+  - {fileID: 8300000, guid: e41fc019a6ff3ab4ca48596fc37303e5, type: 3}
+  - {fileID: 8300000, guid: abcaae3a10639b44585d74ce94d30eec, type: 3}
+  - {fileID: 8300000, guid: 7a786fc54d947cb43ab5906ba0950246, type: 3}
+  volume: 1
+  pitchRange: 0.1

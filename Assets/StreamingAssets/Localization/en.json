@@ -1,0 +1,36 @@
+{
+    "keys": [
+        "main",
+        "skills",
+        "status",
+        "map",
+        "guide",
+        "continue",
+        "restart_mission",
+        "abandon_mission",
+        "settings",
+        "save_game",
+        "exit_to_main_menu",
+        "options",
+        "graphic",
+        "controller",
+        "low"
+    ],
+    "values": [
+        "Main",
+        "Skills",
+        "Status",
+        "Map",
+        "Guide",
+        "Continue",
+        "Restart Mission",
+        "Abandon Mission",
+        "Settings",
+        "Save Game",
+        "Exit to Main Menu",
+        "Options",
+        "Graphic",
+        "Controller",
+        "Low"
+    ]
+}
