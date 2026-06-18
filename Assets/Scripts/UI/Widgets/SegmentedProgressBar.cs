@@ -3,103 +3,155 @@ using UnityEngine.UI;
 
 namespace UI.Widgets
 {
+    /// <summary>
+    /// A visual segmented progress indicator used to display static progress like completed missions or captured outposts.
+    /// This component is read-only from the UI side and receives value updates strictly from external scripts.
+    /// </summary>
+    [RequireComponent(typeof(RectTransform))]
     public class SegmentedProgressBar : MonoBehaviour
     {
         [Header("UI References")]
         [SerializeField] private RectTransform containerRect;
 
-        [Header("Settings")]
+        [Header("Segment Settings")]
         [Range(1, 50)] [SerializeField] private int maxSegments = 5;
-
+        [SerializeField] private float spacing = 5f;
+        
+        [Header("Visual Styling")]
         [SerializeField] private Sprite segmentSprite;
-        [SerializeField] private float segmentPixelsPerUnit = 1;
+        [Tooltip("Type used when sprite is assigned. If sprite is null, type automatically reverts to Simple.")]
+        [SerializeField] private Image.Type imageType = Image.Type.Sliced;
+        [SerializeField] private float pixelsPerUnitMultiplier = 1f;
         [SerializeField] private Color activeColor = Color.green;
         [SerializeField] private Color inactiveColor = Color.gray;
-        [SerializeField] private float spacing = 5f;
 
-        // Sahnada saqlanadigan (serialized) segmentlar massivi
+        // Serialized array to cache generated segment references within the scene
         [HideInInspector] [SerializeField] private Image[] pooledSegments;
+        
+        private int currentActiveCount = 0;
 
         /// <summary>
-        /// O'yin vaqtida (Runtime) faqat shu funksiya ishlaydi - Chiqindi nol (Nol GC)
+        /// Gets or sets the current active segments. Updates the UI automatically when changed.
+        /// </summary>
+        public int CurrentActiveSegments
+        {
+            get => currentActiveCount;
+            set => UpdateProgress(value);
+        }
+
+        private void Start()
+        {
+            if (containerRect == null)
+            {
+                containerRect = GetComponent<RectTransform>();
+            }
+            
+            UpdateProgress(currentActiveCount);
+        }
+
+        /// <summary>
+        /// Updates the visual state of the segments. Zero Garbage Collection (Zero GC) at runtime.
         /// </summary>
         public void UpdateProgress(int activeCount)
         {
-            if (pooledSegments == null || pooledSegments.Length == 0) return;
+            currentActiveCount = Mathf.Clamp(activeCount, 0, maxSegments);
 
-            int currentActive = Mathf.Clamp(activeCount, 0, maxSegments);
+            if (pooledSegments == null || pooledSegments.Length == 0) return;
 
             for (int i = 0; i < pooledSegments.Length; i++)
             {
                 if (pooledSegments[i] != null)
                 {
-                    pooledSegments[i].color = (i < currentActive) ? activeColor : inactiveColor;
+                    pooledSegments[i].color = (i < currentActiveCount) ? activeColor : inactiveColor;
                 }
             }
         }
 
 #if UNITY_EDITOR
         /// <summary>
-        /// Inspectorda biror qiymat o'zgarganda avtomatik ishlaydi (Faqat Editorda)
+        /// Automatically triggered in the Unity Editor whenever a property value changes in the Inspector.
         /// </summary>
         private void OnValidate()
         {
-            // Birinchi kadrda iyerarxiya band bo'lsa, kechiktirib chaqiramiz (Unity xatolik bermasligi uchun)
+            UnityEditor.EditorApplication.delayCall -= RebuildSegmentsInEditor;
             UnityEditor.EditorApplication.delayCall += RebuildSegmentsInEditor;
         }
 
+        /// <summary>
+        /// Rebuilds the entire layout framework and instantiates segments inside the Editor scene view safely.
+        /// </summary>
         private void RebuildSegmentsInEditor()
         {
-            // Obyekt o'chirilgan bo'lsa, xatolik chiqmasligi uchun tekshiruv
-            if (this == null || containerRect == null) return;
+            UnityEditor.EditorApplication.delayCall -= RebuildSegmentsInEditor;
+            if (Application.isPlaying || this == null || containerRect == null) return;
 
-            // 1. Eskilarini tozalash (Iyerarxiyadan butkul o'chirish)
+            // FIX 1: Prevent modification if this object is a persistent Prefab asset in the Project folders
+            if (UnityEditor.PrefabUtility.IsPartOfPrefabAsset(this)) return;
+
+            // 1. Setup or update the HorizontalLayoutGroup for clean automatic layout distribution
+            HorizontalLayoutGroup layoutGroup = containerRect.GetComponent<HorizontalLayoutGroup>();
+            if (layoutGroup == null)
+            {
+                layoutGroup = containerRect.gameObject.AddComponent<HorizontalLayoutGroup>();
+            }
+            
+            layoutGroup.spacing = spacing;
+            layoutGroup.childAlignment = TextAnchor.MiddleCenter;
+            layoutGroup.childControlWidth = true;
+            layoutGroup.childControlHeight = true;
+            layoutGroup.childForceExpandWidth = true;
+            layoutGroup.childForceExpandHeight = true;
+
+            // 2. Clear existing old segments from the hierarchy safely using Undo tracking
             for (int i = containerRect.childCount - 1; i >= 0; i--)
             {
-                // Editorda Destroy o'rniga DestroyImmediate ishlatiladi
-                DestroyImmediate(containerRect.GetChild(i).gameObject);
+                GameObject child = containerRect.GetChild(i).gameObject;
+                
+                // FIX 2: Use UnityEditor.Undo to handle deletion safely without triggering asset loss warnings
+                UnityEditor.Undo.DestroyObjectImmediate(child);
             }
 
-            // 2. Yangi massivni tayyorlash
+            // 3. Initialize the references array
             pooledSegments = new Image[maxSegments];
 
-            float totalWidth = containerRect.rect.width;
-            float segmentWidth = (totalWidth - (spacing * (maxSegments - 1))) / maxSegments;
-
-            // 3. Shablonni xotirada yaratish (Faqat ushbu sikl davomida ishlatish uchun)
+            // 4. Create a temporary setup configuration
             GameObject templateObj = new GameObject("Temp_Template", typeof(RectTransform), typeof(Image));
             Image templateImage = templateObj.GetComponent<Image>();
+            
             templateImage.sprite = segmentSprite;
-            templateImage.type = Image.Type.Sliced;
-            templateImage.pixelsPerUnitMultiplier = segmentPixelsPerUnit;
+            templateImage.type = (segmentSprite == null) ? Image.Type.Simple : imageType;
+            templateImage.pixelsPerUnitMultiplier = pixelsPerUnitMultiplier;
 
-            // 4. Segmentlarni ketma-ket yaratib joylashtirish
+            // 5. Instantiate new segments according to maxSegments settings
             for (int i = 0; i < maxSegments; i++)
             {
                 Image newSegment = Instantiate(templateImage, containerRect, false);
                 newSegment.name = $"Segment_{i}";
-            
-                RectTransform rect = newSegment.GetComponent<RectTransform>();
-                rect.anchorMin = new Vector2(0, 0.5f);
-                rect.anchorMax = new Vector2(0, 0.5f);
-                rect.pivot = new Vector2(0, 0.5f);
-
-                float posX = i * (segmentWidth + spacing);
-                rect.anchoredPosition = new Vector2(posX, 0);
-                rect.sizeDelta = new Vector2(segmentWidth, containerRect.rect.height);
-
-                newSegment.color = inactiveColor;
+                newSegment.color = (i < currentActiveCount) ? activeColor : inactiveColor;
+                
+                // FIX 3: Register created objects to Undo system so Unity officially recognizes them in the scene structure
+                UnityEditor.Undo.RegisterCreatedObjectUndo(newSegment.gameObject, "Create Segment");
+                
                 pooledSegments[i] = newSegment;
             }
 
-            // Vaqtincha yaratilgan shablonni o'chirib yuboramiz
+            // Discard the temporary template setup
             DestroyImmediate(templateObj);
 
-            // 5. Eng muhim qismi: Sahnani va Obyektni "Dirty" (O'zgargan) deb belgilash
-            // Bu Unity sahna saqlanganida (Ctrl+S) barcha yaratilgan segmentlarni faylga yozib qo'yishini ta'minlaydi
+            // 6. Force layout calculations to refresh instantly inside the Editor window
+            Canvas.ForceUpdateCanvases();
+            layoutGroup.CalculateLayoutInputHorizontal();
+            layoutGroup.CalculateLayoutInputVertical();
+            layoutGroup.SetLayoutHorizontal();
+            layoutGroup.SetLayoutVertical();
+
+            // 7. Mark objects as dirty to force Unity to save the newly created hierarchy structure to the scene file
             UnityEditor.EditorUtility.SetDirty(this);
             UnityEditor.EditorUtility.SetDirty(containerRect);
-            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            if (gameObject.scene.IsValid())
+            {
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+            }
         }
 #endif
     }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace UI.Widgets
 {
-    public abstract class TabFragmentView : MonoBehaviour
+    public class TabFragmentView : MonoBehaviour
     {
         public virtual void OnFragmentInit() { }
 

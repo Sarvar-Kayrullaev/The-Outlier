@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Data.Models.Core;
 using Data.Models.World;
 using Handlers;
 using Interfaces;
@@ -11,10 +12,13 @@ namespace Core.Services
     public class DataService : MonoBehaviour, ISingle
     {
         private const string gameDataFile = "game_data.json";
+        private const string settingsDataFileName = "settings_data.json";
         private GameData cashedGameData;
+        private SettingsData cashedSettingsData;
         private WorldModel cashedWorldModel;
         private void Awake()
         {
+            GetSettingsData();
             GetGameData(); 
             GetWorldData();
         }
@@ -32,6 +36,13 @@ namespace Core.Services
             var worldId = GetGameData().lastSelectedWorldID;
             cashedWorldModel = LoadWorld(worldId);
             return cashedWorldModel;
+        }
+        
+        public SettingsData GetSettingsData()
+        {
+            if (cashedSettingsData != null) return cashedSettingsData;
+            cashedSettingsData = FileHandler.Exists(settingsDataFileName) ? FileHandler.ReadFromJSON<SettingsData>(settingsDataFileName) : new SettingsData();
+            return cashedSettingsData;
         }
         
         public WorldModel LoadWorld(int worldId)
@@ -54,7 +65,7 @@ namespace Core.Services
             return newWorld;
         }
         
-        public void SaveCurrentData()
+        public void SaveCurrentGameData()
         {
             if (cashedGameData == null || cashedWorldModel == null) return;
 
@@ -87,6 +98,13 @@ namespace Core.Services
             SaveAll();
         }
 
+        public void SaveSettingsData()
+        {
+            if (cashedSettingsData == null) return;
+            FileHandler.SaveToJSON(cashedSettingsData, settingsDataFileName);
+            Debug.Log("Settings Saved!");
+        }
+        
         private void SaveAll()
         {
             if (cashedGameData == null) return;

@@ -22,16 +22,16 @@ namespace UI.Widgets
 
         [Header("Layout & Spacing")]
         public bool splitToRows;
-        [Range(1, 8)] public int rowSize;
+        [Range(1, 8)] public int rowSize = 1;
         public float rowSpacing;
         public int padding;
         public float itemHeight = 30f;
         public float itemWidth = 200f;
         public float itemSpacing = 5f;
-        public Color selectedItemColor;
-        public Color unselectedItemColor;
-        public Color selectedSecondaryColor;
-        public Color unselectedSecondaryColor;
+        public Color selectedItemColor = Color.white;
+        public Color unselectedItemColor = Color.gray;
+        public Color selectedSecondaryColor = Color.white;
+        public Color unselectedSecondaryColor = Color.gray;
 
         [Header("Content Data")]
         public bool showSprite;
@@ -50,11 +50,12 @@ namespace UI.Widgets
         #region Internal State
         public int currentItemIndex { get; private set; }
         public bool isActivated { get; private set; }
-
+        
+        [HideInInspector] public Canvas _canvasRoot;
+        
         private RectTransform _instancedSpinnerBackgroundRect;
         private GameObject _instancedDarkScreen;
         private CanvasGroup _darkScreenCanvasGroup;
-        private Canvas _canvasRoot;
         private RectTransform _root;
         private RectTransform _selfRect;
         private float _targetGraphicAlpha;
@@ -64,7 +65,21 @@ namespace UI.Widgets
 
         private void Awake()
         {
-            _root = _canvasRoot.transform as RectTransform;
+            // Agar editor'da canvas biriktirilmagan bo'lsa, dinamik qidiramiz
+            if (_canvasRoot == null)
+            {
+                _canvasRoot = GetComponentInParent<Canvas>();
+            }
+
+            if (_canvasRoot != null)
+            {
+                _root = _canvasRoot.transform as RectTransform;
+            }
+            else
+            {
+                Debug.LogError("Spinner: Canvas Root topilmadi!", this);
+            }
+
             _selfRect = transform as RectTransform;
             if (spinnerImage) _targetGraphicAlpha = spinnerImage.color.a;
         }
@@ -87,15 +102,12 @@ namespace UI.Widgets
                 }
             }
 
-            if (localizedText == null)
+            if (localizedText == null && title != null)
             {
-                if (title)
+                if (title.TryGetComponent(out LocalizedText localizedTextComponent))
                 {
-                    if (title.TryGetComponent(out LocalizedText localizedTextComponent))
-                    {
-                        localizedText = localizedTextComponent;
-                        UnityEditor.EditorUtility.SetDirty(this);
-                    }
+                    localizedText = localizedTextComponent;
+                    UnityEditor.EditorUtility.SetDirty(this);
                 }
             }
         }
@@ -104,14 +116,18 @@ namespace UI.Widgets
         #region Public API
         public void Initialize(int index)
         {
-            if (items.Count >= index) Select(index, true);
-            else Debug.LogError("Invalid number of items");
+            if (IsValidIndex(index)) 
+                Select(index, true);
+            else 
+                Debug.LogError($"Invalid item index: {index}. Total items count: {GetItemsCount()}");
         }
 
         public void Rebuild(int index)
         {
-            if (items.Count >= index) Select(index);
-            else Debug.LogError("Invalid number of items");
+            if (IsValidIndex(index)) 
+                Select(index, false);
+            else 
+                Debug.LogError($"Invalid item index: {index}. Total items count: {GetItemsCount()}");
         }
 
         public void SetInteractable(bool parInteractable)
@@ -141,15 +157,21 @@ namespace UI.Widgets
 
             if (showSprite)
             {
-                if (localizedText) localizedText.SetText(customItems[currentItemIndex].title);
-                else if (title) title.text = customItems[currentItemIndex].title;
-                
-                if (image) image.sprite = customItems[currentItemIndex].icon;
+                if (customItems != null && currentItemIndex < customItems.Count)
+                {
+                    if (localizedText) localizedText.SetText(customItems[currentItemIndex].title);
+                    else if (title) title.text = customItems[currentItemIndex].title;
+                    
+                    if (image) image.sprite = customItems[currentItemIndex].icon;
+                }
             }
             else
             {
-                if (localizedText) localizedText.SetText(items[currentItemIndex]);
-                else if (title) title.text = items[currentItemIndex];
+                if (items != null && currentItemIndex < items.Count)
+                {
+                    if (localizedText) localizedText.SetText(items[currentItemIndex]);
+                    else if (title) title.text = items[currentItemIndex];
+                }
             }
         }
         #endregion
@@ -157,6 +179,7 @@ namespace UI.Widgets
         #region Open & Close Logic
         private void OpenSpinner()
         {
+            if (_root == null) return;
             isActivated = true;
             BuildSpinner();
             this.Fade(_darkScreenCanvasGroup, 1, animationDuration);
@@ -169,7 +192,7 @@ namespace UI.Widgets
             this.Fade(_darkScreenCanvasGroup, 0, animationDuration);
             this.ScaleY(_instancedSpinnerBackgroundRect, 0, animationDuration, (() =>
             {
-                if(_instancedDarkScreen) Destroy(_instancedDarkScreen);
+                if (_instancedDarkScreen) Destroy(_instancedDarkScreen);
             }));
         }
         #endregion
@@ -190,18 +213,18 @@ namespace UI.Widgets
 
         private void CreateDarkScreen()
         {
-            _instancedDarkScreen = new GameObject("[SpinnerDarkScreen]", typeof(RectTransform) ,typeof(Image), typeof(CanvasGroup));
-            _instancedDarkScreen.transform.SetParent(_root.transform);
+            _instancedDarkScreen = new GameObject("[SpinnerDarkScreen]", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+            _instancedDarkScreen.transform.SetParent(_root.transform, false);
             
             var darkScreenLiteButton = _instancedDarkScreen.AddComponent<PointerEvent>();
             if (darkScreenLiteButton) darkScreenLiteButton.onPointerDown.AddListener(CloseSpinner);
             
             var darkScreenRect = _instancedDarkScreen.GetComponent<RectTransform>();
-            darkScreenRect.anchorMin = new Vector2(0.5f, 0.5f);
-            darkScreenRect.anchorMax = new Vector2(0.5f, 0.5f);
-            darkScreenRect.sizeDelta = new Vector2(_root.rect.width, _root.rect.height);
-            darkScreenRect.anchoredPosition = new Vector2(0, 0);
-            darkScreenRect.localScale = new Vector3(1, 1, 1);
+            darkScreenRect.anchorMin = Vector2.zero;
+            darkScreenRect.anchorMax = Vector2.one;
+            darkScreenRect.sizeDelta = Vector2.zero;
+            darkScreenRect.anchoredPosition = Vector2.zero;
+            darkScreenRect.localScale = Vector3.one;
             
             var darkScreenImage = _instancedDarkScreen.GetComponent<Image>();
             darkScreenImage.color = new Color(0, 0, 0, 0.99f);
@@ -215,8 +238,9 @@ namespace UI.Widgets
         private void CreateBackground()
         {
             _instancedSpinnerBackgroundRect = Instantiate(dropdownBackgroundPrefab.transform as RectTransform, _instancedDarkScreen.transform as RectTransform);
-            _instancedSpinnerBackgroundRect.anchorMin = new Vector2(0, 0);
-            _instancedSpinnerBackgroundRect.anchorMax = new Vector2(0, 0);
+            _instancedSpinnerBackgroundRect.anchorMin = new Vector2(0.5f, 0.5f);
+            _instancedSpinnerBackgroundRect.anchorMax = new Vector2(0.5f, 0.5f);
+            _instancedSpinnerBackgroundRect.pivot = new Vector2(0.5f, 0.5f);
             _instancedSpinnerBackgroundRect.localScale = new Vector3(1, 0.7f, 1);
         }
 
@@ -232,7 +256,6 @@ namespace UI.Widgets
 
         private void PopulateItems()
         {
-            if (!_instancedSpinnerBackgroundRect.GetComponent<GridLayoutGroup>()) return;
             var index = 0;
 
             if (showSprite && customItems != null)
@@ -259,10 +282,14 @@ namespace UI.Widgets
             var itemRect = itemPrefab.transform as RectTransform;
             var instancedItemRect = Instantiate(itemRect, _instancedSpinnerBackgroundRect.transform as RectTransform);
             
-            var itemButton = instancedItemRect.AddComponent<ItemButton>();
+            var itemButton = instancedItemRect.GetComponent<ItemButton>();
+            if (itemButton == null) itemButton = instancedItemRect.AddComponent<ItemButton>();
+            
             var chooseIndex = index;
+            itemButton.onClick.RemoveAllListeners();
             itemButton.onClick.AddListener(() => Select(chooseIndex));
             itemButton.onClick.AddListener(CloseSpinner);
+            
             itemButton.selectedPrimaryColor = selectedItemColor;
             itemButton.unselectedPrimaryColor = unselectedItemColor;
             itemButton.hoverPrimaryColor = unselectedSecondaryColor;
@@ -272,12 +299,16 @@ namespace UI.Widgets
             itemButton.hoverSecondaryColor = unselectedItemColor;
             itemButton.SetSelection(isSelected);
             
-            if (instancedItemRect.Find("Text").TryGetComponent(out LocalizedText itemText))
+            var textTransform = instancedItemRect.Find("Text");
+            if (textTransform && textTransform.TryGetComponent(out LocalizedText itemText))
                 itemText.SetText(itemTitle);
+            else if (textTransform && textTransform.TryGetComponent(out TMP_Text tmpText))
+                tmpText.text = itemTitle;
             
             if (showSprite && itemIcon != null)
             {
-                if (instancedItemRect.Find("Image").TryGetComponent(out Image img))
+                var imgTransform = instancedItemRect.Find("Image");
+                if (imgTransform && imgTransform.TryGetComponent(out Image img))
                     img.sprite = itemIcon;
             }
 
@@ -286,9 +317,20 @@ namespace UI.Widgets
         #endregion
 
         #region Mathematics & Utilities Logic
+        private int GetItemsCount()
+        {
+            return showSprite ? (customItems?.Count ?? 0) : (items?.Count ?? 0);
+        }
+
+        private bool IsValidIndex(int index)
+        {
+            int count = GetItemsCount();
+            return index >= 0 && index < count;
+        }
+
         private Vector2 CalculateSize()
         {
-            var itemCount = showSprite ? customItems?.Count ?? 0 : items?.Count ?? 0;
+            var itemCount = GetItemsCount();
             var sizeDelta = Vector2.zero;
 
             if (spinnerType == SpinnerType.Dialog)
@@ -326,7 +368,6 @@ namespace UI.Widgets
             if (spinnerType == SpinnerType.Dropdown)
             {
                 backgroundPosition = GetScreenPosition(_selfRect);
-                backgroundPosition = new Vector2(backgroundPosition.x + (_selfRect.rect.width / 2), backgroundPosition.y + (_selfRect.rect.height / 2));
                 
                 var isOffScreenBottom = backgroundPosition.y - (sizeDelta.y / 2) < 0;
                 var isOffScreenTop = backgroundPosition.y + (sizeDelta.y / 2) > _root.rect.height;
@@ -339,8 +380,7 @@ namespace UI.Widgets
             }
             else
             {
-                var canvasRectSize = _root.rect.size;
-                backgroundPosition = new Vector2(canvasRectSize.x / 2, canvasRectSize.y / 2);
+                backgroundPosition = Vector2.zero; // Dialog markazda ochiladi (Anchor 0.5 o'rnatilgani sababli)
             }
 
             return backgroundPosition;
@@ -348,10 +388,14 @@ namespace UI.Widgets
 
         private Vector2 GetScreenPosition(RectTransform rectTransform)
         {
-            var worldCorners = new Vector3[4];
+            Vector3[] worldCorners = new Vector3[4];
             rectTransform.GetWorldCorners(worldCorners);
-            var canvasSpaceBL = _root.InverseTransformPoint(worldCorners[0]);
-            return new Vector2(canvasSpaceBL.x + (_root.rect.width / 2), canvasSpaceBL.y + (_root.rect.height / 2));
+            
+            // UI elementining markazini hisoblash
+            Vector3 centerWorld = (worldCorners[0] + worldCorners[2]) / 2f;
+            Vector2 localPoint = _root.InverseTransformPoint(centerWorld);
+            
+            return localPoint;
         }
         #endregion
     }

@@ -15,7 +15,7 @@ namespace Core.Initialization
             var worldModel = Hub.dataService.GetWorldData();
             worldModel.player.position = playerManager.transform.position;
             worldModel.player.rotationAngle =  playerManager.transform.rotation.eulerAngles.y;
-            Hub.dataService.SaveCurrentData();
+            Hub.dataService.SaveCurrentGameData();
         }
         
         private void OnApplicationQuit()

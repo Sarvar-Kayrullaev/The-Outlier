@@ -9,31 +9,37 @@ namespace UI.Widgets.Editor
     {
         private SerializedProperty interactable;
         private SerializedProperty isWholeNumber;
-        private SerializedProperty minFloatValue, maxFloatValue, floatValue;
-        private SerializedProperty minIntValue, maxIntValue, intValue;
+        
+        // Yangi birlashtirilgan o'zgaruvchilar
+        private SerializedProperty minValue;
+        private SerializedProperty maxValue;
+        private SerializedProperty value;
+
         private SerializedProperty fillerColor;
         private SerializedProperty fillerHoverColor;
         private SerializedProperty animationEnabled;
         private SerializedProperty fillerTargetHeightScale;
         private SerializedProperty animatingTime;
+
+        // Yangi info/tooltip property-lari
+        private SerializedProperty infoPrefab;
+        private SerializedProperty infoYOffset;
+
         private SerializedProperty containerRect;
         private SerializedProperty fillerRect;
         private SerializedProperty fillerImage;
+        private SerializedProperty valueText;
         private SerializedProperty onValueChanged;
 
         private void OnEnable()
         {
-            // Property-larni bog'lab olamiz
+            // Property-larni yangi o'zgaruvchilarga qarab bog'lab olamiz
             interactable = serializedObject.FindProperty("interactable");
             isWholeNumber = serializedObject.FindProperty("isWholeNumber");
         
-            minFloatValue = serializedObject.FindProperty("minFloatValue");
-            maxFloatValue = serializedObject.FindProperty("maxFloatValue");
-            floatValue = serializedObject.FindProperty("floatValue");
-
-            minIntValue = serializedObject.FindProperty("minIntValue");
-            maxIntValue = serializedObject.FindProperty("maxIntValue");
-            intValue = serializedObject.FindProperty("intValue");
+            minValue = serializedObject.FindProperty("minValue");
+            maxValue = serializedObject.FindProperty("maxValue");
+            value = serializedObject.FindProperty("value");
             
             fillerColor = serializedObject.FindProperty("fillerColor");
             fillerHoverColor = serializedObject.FindProperty("fillerHoverColor");
@@ -42,9 +48,13 @@ namespace UI.Widgets.Editor
             fillerTargetHeightScale = serializedObject.FindProperty("fillerTargetHeightScale");
             animatingTime = serializedObject.FindProperty("animatingTime");
 
+            infoPrefab = serializedObject.FindProperty("infoPrefab");
+            infoYOffset = serializedObject.FindProperty("infoYOffset");
+
             containerRect = serializedObject.FindProperty("containerRect");
             fillerRect = serializedObject.FindProperty("fillerRect");
             fillerImage = serializedObject.FindProperty("fillerImage");
+            valueText = serializedObject.FindProperty("valueText");
             
             onValueChanged = serializedObject.FindProperty("onValueChanged");
         }
@@ -68,31 +78,50 @@ namespace UI.Widgets.Editor
             if (!isWholeNumber.boolValue)
             {
                 // Float sozlamalari
-                EditorGUILayout.PropertyField(minFloatValue, new GUIContent("Min Value"));
-                EditorGUILayout.PropertyField(maxFloatValue, new GUIContent("Max Value"));
+                EditorGUILayout.PropertyField(minValue, new GUIContent("Min Value"));
+                EditorGUILayout.PropertyField(maxValue, new GUIContent("Max Value"));
             
-                // Slider ko'rinishida joriy qiymat
-                floatValue.floatValue = EditorGUILayout.Slider(
+                // Float Slider ko'rinishida joriy qiymat
+                value.floatValue = EditorGUILayout.Slider(
                     new GUIContent("Current Value"), 
-                    floatValue.floatValue, 
-                    minFloatValue.floatValue, 
-                    maxFloatValue.floatValue
+                    value.floatValue, 
+                    minValue.floatValue, 
+                    maxValue.floatValue
                 );
             }
             else
             {
-                // Int sozlamalari
-                EditorGUILayout.PropertyField(minIntValue, new GUIContent("Min Value"));
-                EditorGUILayout.PropertyField(maxIntValue, new GUIContent("Max Value"));
+                // Int sozlamalari (Faqat butun sonlar kiritilishini ta'minlaymiz)
+                int minInt = Mathf.RoundToInt(minValue.floatValue);
+                int maxInt = Mathf.RoundToInt(maxValue.floatValue);
+
+                EditorGUI.BeginChangeCheck();
+                minInt = EditorGUILayout.IntField(new GUIContent("Min Value"), minInt);
+                maxInt = EditorGUILayout.IntField(new GUIContent("Max Value"), maxInt);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    minValue.floatValue = minInt;
+                    maxValue.floatValue = maxInt;
+                }
             
-                // Slider ko'rinishida joriy qiymat
-                intValue.intValue = EditorGUILayout.IntSlider(
+                // Int Slider ko'rinishida joriy qiymat
+                int currentInt = Mathf.RoundToInt(value.floatValue);
+                currentInt = EditorGUILayout.IntSlider(
                     new GUIContent("Current Value"), 
-                    intValue.intValue, 
-                    minIntValue.intValue, 
-                    maxIntValue.intValue
+                    currentInt, 
+                    minInt, 
+                    maxInt
                 );
+                value.floatValue = currentInt;
             }
+            EditorGUILayout.EndVertical();
+
+            // YANGI: Tooltip / Info Sozlamalari bo'limi
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Tooltip / Info Settings", EditorStyles.boldLabel);
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
+            EditorGUILayout.PropertyField(infoPrefab, new GUIContent("Info Prefab"));
+            EditorGUILayout.PropertyField(infoYOffset, new GUIContent("Y Offset"));
             EditorGUILayout.EndVertical();
 
             EditorGUILayout.Space(5);
@@ -118,6 +147,7 @@ namespace UI.Widgets.Editor
             EditorGUILayout.PropertyField(containerRect);
             EditorGUILayout.PropertyField(fillerRect);
             EditorGUILayout.PropertyField(fillerImage);
+            EditorGUILayout.PropertyField(valueText);
             EditorGUILayout.EndVertical();
             
             EditorGUILayout.Space(5);
@@ -126,7 +156,7 @@ namespace UI.Widgets.Editor
             // O'zgarishlarni saqlash
             serializedObject.ApplyModifiedProperties();
 
-            // Agar Editor-da biror narsa o'zgarsa, SeekBar-dagi OnValidate-ni chaqirish (vizual yangilanish uchun)
+            // Agar Editor-da biror narsa o'zgarsa, vizual yangilanish uchun sahna va obyektni "Dirty" (o'zgargan) deb belgilaymiz
             if (GUI.changed)
             {
                 EditorUtility.SetDirty(target);

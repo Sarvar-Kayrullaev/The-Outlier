@@ -27,7 +27,7 @@ namespace UI.Menu.Fragments.Main
 
         public void OpenSettings()
         {
-            Hub.panelManager.OpenPanelByName("SettingsPanel");
+            //Hub.panelManager.OpenPanelByName("SettingsPanel");
         }
 
         public void SaveGame()
