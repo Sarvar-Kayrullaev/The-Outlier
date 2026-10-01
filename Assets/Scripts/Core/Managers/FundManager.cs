@@ -1,19 +1,21 @@
 using System;
+using Core.Initialization;
 using Data.Models.World;
+using Interfaces;
 using UnityEngine;
 
 namespace Core.Managers
 {
-    public class FundManager : MonoBehaviour
+    public class FundManager : MonoBehaviour, ISingle
     {
         private FundModel _model;
         
         public static event Action<int> OnBalanceChanged;
         public static event Action<int> OnSkillPointChanged;
 
-        public void Initialize(FundModel model)
+        public void Awake()
         {
-            _model = model;
+            _model = Hub.dataService.GetWorldData().funds;
             NotifyFund();
         }
 

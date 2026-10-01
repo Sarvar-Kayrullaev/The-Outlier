@@ -67,4 +67,12 @@ namespace Interfaces
         Completed,
         Failed
     }
+    public enum AbilityNodeDirection
+    {
+        Center,
+        Top,
+        Bottom,
+        Left,
+        Right
+    }
 }

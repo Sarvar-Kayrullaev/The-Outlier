@@ -1,15 +1,17 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using TouchPhase = UnityEngine.TouchPhase;
 
 namespace Actors.Player.Controller
 {
     public class InputRotation : MonoBehaviour
     {
-        [Header("Settings")]
-        public float sensitivity = 0.05f; // Mobil uchun odatda pastroq qiymat yaxshi
-        
+        [Header("Settings")] public float sensitivity = 0.05f; // Mobil uchun odatda pastroq qiymat yaxshi
+
         private Input inputMobile;
         private int rightFingerId = -1;
         private float screenCenterX;
+        private bool isDraggingInEditor = false;
 
         private void Awake()
         {
@@ -20,7 +22,11 @@ namespace Actors.Player.Controller
 
         void Update()
         {
+#if UNITY_EDITOR
+            TryWithEditorInput();
+#else
             HandleTouchInput();
+#endif
         }
 
         private void HandleTouchInput()
@@ -57,8 +63,47 @@ namespace Actors.Player.Controller
                     }
                 }
             }
-
+            
             // Tashqi classlar foydalanishi uchun qiymatni saqlaymiz
+            inputMobile.rotateInput = inputDelta;
+        }
+
+        private void TryWithEditorInput()
+        {
+            Vector2 inputDelta = Vector2.zero;
+            
+            // Sichqoncha va Ekranni olish
+            Mouse mouse = Mouse.current;
+            if (mouse == null) return;
+
+            Vector2 mousePosition = mouse.position.ReadValue();
+
+            // 1. Sichqoncha chap tugmasi bosilganda
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                if (mousePosition.x > screenCenterX)
+                {
+                    isDraggingInEditor = true;
+                }
+            }
+
+            // 2. Sichqoncha ushlab turilganda va surilganda
+            if (isDraggingInEditor)
+            {
+                if (mouse.leftButton.isPressed)
+                {
+                    // Yangi Input System'da sichqoncha delta qiymati
+                    Vector2 mouseDelta = mouse.delta.ReadValue();
+                    inputDelta = mouseDelta * sensitivity;
+                }
+
+                // 3. Tugma qo'yib yuborilganda
+                if (mouse.leftButton.wasReleasedThisFrame)
+                {
+                    isDraggingInEditor = false;
+                }
+            }
+            
             inputMobile.rotateInput = inputDelta;
         }
     }

@@ -9,7 +9,7 @@ namespace Data.Models.World
         public int worldID;
         public PlayerModel player;
         public FundModel funds;
-        public List<PlayerAbilityModel> abilities;
+        public List<PlayerSkillModel> skills;
         public List<OutpostModel> outposts;
     }
 }

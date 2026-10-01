@@ -19,6 +19,8 @@ namespace Core.Initialization
         public static LocalizationService localizationService;
         public static PanelManager panelManager;
         public static HUDManager hudManager;
+        public static SkillManager skillManager;
+        public static FundManager fundManager;
         
         // Later
         public static PlayerManager playerManager;

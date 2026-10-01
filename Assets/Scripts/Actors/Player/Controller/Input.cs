@@ -35,12 +35,27 @@ namespace Actors.Player.Controller
             }
             set => _shootInput = value;
         }
+
+        // YANGI: crouch/slide tugmasi. jumpInput bilan bir xil "bir marta iste'mol qilish" naqshi -
+        // StandingState/CrouchingState bir marta o'qiganidan keyin qiymat avtomatik false'ga qaytadi,
+        // shuning uchun tugma bosib turilganda ham SlidingState/CrouchingState orasida "chayqalish" bo'lmaydi.
+        public bool crouchInput
+        {
+            get
+            {
+                if (!_crouchInput) return false;
+                _crouchInput = false;
+                return true;
+            }
+            set => _crouchInput = value;
+        }
         
         public static Input Instance;
         
         #region Private Members
         private bool _jumpInput;
         private bool _shootInput;
+        private bool _crouchInput;
 
         private Input()
         {
